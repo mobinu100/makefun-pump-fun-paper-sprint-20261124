@@ -18,13 +18,13 @@ import {
 const STAKE_LAMPORTS = 40_000_000n; // 0.04 SOL per coin: clears the 0.01 SOL round-trip bar with room.
 const MIN_CAP_LAMPORTS = 10_000_000n; // 0.01 SOL: never buy below the guardrail size.
 const ENTRY_WINDOW_SLOTS = 900; // only buy young coins, while the move is early.
-const ENTRY_MIN_BUYS = 3; // need at least three buys since creation...
-const ENTRY_RISE_BPS = 500; // ...and price up >= 5% from its create price.
-const TP_BPS = 2500; // take profit +25%.
-const SL_BPS = 700; // stop loss -7%.
-const TRAIL_ARM_BPS = 1200; // trailing stop arms at +12%...
-const TRAIL_DROP_BPS = 800; // ...and sells on an 8% pullback from the peak.
-const MAX_HOLD_SLOTS = 1800; // never hold longer than this; the window is only 6h.
+const ENTRY_MIN_BUYS = 5; // need at least five buys since creation...
+const ENTRY_RISE_BPS = 1000; // ...and price up >= 10% from its create price.
+const TP_BPS = 10000; // take profit +100%.
+const SL_BPS = 1500; // stop loss -15%.
+const TRAIL_ARM_BPS = 3000; // trailing stop arms at +30%...
+const TRAIL_DROP_BPS = 1500; // ...and sells on a 15% pullback from the peak.
+const MAX_HOLD_SLOTS = 7200; // never hold longer than this; the window is only 6h.
 const BUY_SLIPPAGE_BPS = 1000;
 const SELL_SLIPPAGE_BPS = 10_000;
 
