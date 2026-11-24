@@ -1,9 +1,9 @@
 // Pump.fun Paper Sprint bot — 6-hour window, tiny-stake early momentum, fast exits.
 //
-// Idea: on a 6h window most curves die fast, so survive first and bank small
-// wins early. One small buy per coin (0.04 SOL), only into coins that already
+// Idea: on a 6h window most curves die fast, so survive first and let a few
+// runners pay. One small buy per coin (0.04 SOL), only into coins that already
 // show early buying pressure shortly after creation, then exit fast: take
-// profit at +20%, cut at -10%, trail winners, never hold past 3600 slots.
+// profit at +40%, cut at -10%, trail winners, never hold past 3600 slots.
 // No leverage, no shorts, no re-buys, no clock, no randomness, no network.
 // hello: each batch of orders is decided once per slot, from that slot's events only.
 import {
@@ -20,10 +20,10 @@ const MIN_CAP_LAMPORTS = 10_000_000n; // 0.01 SOL: never buy below the guardrail
 const ENTRY_WINDOW_SLOTS = 900; // only buy young coins, while the move is early.
 const ENTRY_MIN_BUYS = 2; // need at least two buys since creation...
 const ENTRY_RISE_BPS = 300; // ...and price up >= 3% from its create price.
-const TP_BPS = 2000; // take profit +20%: bank small wins early.
+const TP_BPS = 4000; // take profit +40%.
 const SL_BPS = 1000; // stop loss -10%.
-const TRAIL_ARM_BPS = 1500; // trailing stop arms at +15%...
-const TRAIL_DROP_BPS = 800; // ...and sells on an 8% pullback from the peak.
+const TRAIL_ARM_BPS = 2000; // trailing stop arms at +20%...
+const TRAIL_DROP_BPS = 1200; // ...and sells on a 12% pullback from the peak.
 const MAX_HOLD_SLOTS = 3600; // never hold longer than this; the window is only 6h.
 const BUY_SLIPPAGE_BPS = 1000;
 const SELL_SLIPPAGE_BPS = 10_000;
@@ -41,10 +41,6 @@ interface Coin {
   entrySlot: number;
   peakNum: bigint;
   peakDen: bigint;
-  highNum: bigint;
-  highDen: bigint;
-  tape: boolean[];
-  lastTradeSlot: number;
 }
 
 /** True when price a/b is at least bps above price c/d. */
@@ -90,10 +86,6 @@ export function decide(state: BotState, batch: Batch): OrderInput[] {
           entrySlot: 0,
           peakNum: 0n,
           peakDen: 1n,
-          highNum: curve.virtual_quote_reserves,
-          highDen: curve.virtual_token_reserves,
-          tape: [],
-          lastTradeSlot: e.slot,
         });
       }
     } else if (e.event === 'TradeEvent') {
@@ -101,14 +93,6 @@ export function decide(state: BotState, batch: Batch): OrderInput[] {
       if (coin === undefined) continue;
       if (e.is_buy) coin.buys += 1;
       else coin.sells += 1;
-      coin.lastTradeSlot = e.slot;
-      coin.tape.push(e.is_buy);
-      if (coin.tape.length > 6) coin.tape.shift();
-      if (curve.virtual_token_reserves > 0n &&
-          above(curve.virtual_quote_reserves, curve.virtual_token_reserves, coin.highNum, coin.highDen)) {
-        coin.highNum = curve.virtual_quote_reserves;
-        coin.highDen = curve.virtual_token_reserves;
-      }
       // A held coin's peak follows its live price.
       if (state.positions.has(e.mint) && curve.virtual_token_reserves > 0n) {
         if (above(curve.virtual_quote_reserves, curve.virtual_token_reserves, coin.peakNum, coin.peakDen)) {
@@ -165,16 +149,9 @@ export function decide(state: BotState, batch: Batch): OrderInput[] {
       }
       const cap = state.maxBuyLamports(e.mint);
       if (cap < MIN_CAP_LAMPORTS) continue;
-      if (coin.tape.length < ENTRY_MIN_BUYS) continue;
-      if (coin.tape[coin.tape.length - 1] !== true) continue; // latest trade must be a buy
-      let tapeBuys = 0;
-      for (const t of coin.tape) if (t) tapeBuys += 1;
-      if (tapeBuys < 3) continue; // buyers stepping back in, not a dead tape
-      if (batch.slot - coin.lastTradeSlot > 120) continue; // stale coin: no recent trade
+      if (coin.buys < ENTRY_MIN_BUYS || coin.buys <= coin.sells) continue;
       if (curve.virtual_token_reserves <= 0n) continue;
-      // Ran up hard from creation, then pulled back hard from its high: buy the dip.
-      if (!upBy(coin.highNum, coin.highDen, coin.createNum, coin.createDen, ENTRY_RISE_BPS)) continue;
-      if (!downBy(curve.virtual_quote_reserves, curve.virtual_token_reserves, coin.highNum, coin.highDen, 3000)) continue;
+      if (!upBy(curve.virtual_quote_reserves, curve.virtual_token_reserves, coin.createNum, coin.createDen, ENTRY_RISE_BPS)) continue;
       const amount = cap < STAKE_LAMPORTS ? cap : STAKE_LAMPORTS;
       if (free < amount + tx) continue;
       const buy: BuyInput = {
