@@ -25,7 +25,7 @@ const SL_BPS = 1000; // stop loss -10%.
 const TRAIL_ARM_BPS = 2000; // trailing stop arms at +20%...
 const TRAIL_DROP_BPS = 1200; // ...and sells on a 12% pullback from the peak.
 const MAX_HOLD_SLOTS = 3600; // never hold longer than this; the window is only 6h.
-const BUY_SLIPPAGE_BPS = 1000;
+const BUY_SLIPPAGE_BPS = 2000; // widened from 1000: v1 grade-local showed 4 rejected + 7 failed fills, each failed order still pays the tx fee, so fewer rejects beats a slightly worse fill price on fast curves.
 const SELL_SLIPPAGE_BPS = 10_000;
 
 interface Coin {
