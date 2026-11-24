@@ -1,11 +1,9 @@
 // Pump.fun Paper Sprint bot — 6-hour window, tiny-stake early momentum, fast exits.
 //
-// Idea: on a 6h window most curves die fast, so survive first and let a few
-// runners pay. One small buy per coin (0.03 SOL), only into coins that ran up
-// hard (>= 80% from creation) and then pulled back >= 30% from their high
-// while buyers step back in (latest trade a buy, >= 3 of the last 6 buys).
-// Then exit fast: take profit at +60%, cut at -12%, trail winners, never
-// hold past 5400 slots.
+// Idea: on a 6h window most curves die fast, so survive first and bank small
+// wins early. One small buy per coin (0.04 SOL), only into coins that already
+// show early buying pressure shortly after creation, then exit fast: take
+// profit at +20%, cut at -10%, trail winners, never hold past 3600 slots.
 // No leverage, no shorts, no re-buys, no clock, no randomness, no network.
 // hello: each batch of orders is decided once per slot, from that slot's events only.
 import {
@@ -17,16 +15,16 @@ import {
   type SellInput,
 } from './vendor/makefun-bot.ts';
 
-const STAKE_LAMPORTS = 30_000_000n; // 0.03 SOL per coin: clears the 0.01 SOL round-trip bar with room.
+const STAKE_LAMPORTS = 40_000_000n; // 0.04 SOL per coin: clears the 0.01 SOL round-trip bar with room.
 const MIN_CAP_LAMPORTS = 10_000_000n; // 0.01 SOL: never buy below the guardrail size.
-const ENTRY_WINDOW_SLOTS = 7200; // a dip can come at any age; dead coins are filtered by the tape.
-const ENTRY_MIN_BUYS = 6; // need a six-trade tape to judge buyers stepping back in...
-const ENTRY_RISE_BPS = 8000; // ...after the coin ran up >= 80% from its create price...
-const TP_BPS = 6000; // take profit +60%.
-const SL_BPS = 1200; // stop loss -12%.
-const TRAIL_ARM_BPS = 2500; // trailing stop arms at +25%...
-const TRAIL_DROP_BPS = 1200; // ...and sells on a 12% pullback from the peak.
-const MAX_HOLD_SLOTS = 5400; // never hold longer than this; the window is only 6h.
+const ENTRY_WINDOW_SLOTS = 900; // only buy young coins, while the move is early.
+const ENTRY_MIN_BUYS = 2; // need at least two buys since creation...
+const ENTRY_RISE_BPS = 300; // ...and price up >= 3% from its create price.
+const TP_BPS = 2000; // take profit +20%: bank small wins early.
+const SL_BPS = 1000; // stop loss -10%.
+const TRAIL_ARM_BPS = 1500; // trailing stop arms at +15%...
+const TRAIL_DROP_BPS = 800; // ...and sells on an 8% pullback from the peak.
+const MAX_HOLD_SLOTS = 3600; // never hold longer than this; the window is only 6h.
 const BUY_SLIPPAGE_BPS = 1000;
 const SELL_SLIPPAGE_BPS = 10_000;
 
