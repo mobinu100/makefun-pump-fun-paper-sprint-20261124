@@ -25,7 +25,8 @@ const SL_BPS = 1000; // stop loss -10%.
 const TRAIL_ARM_BPS = 2000; // trailing stop arms at +20%...
 const TRAIL_DROP_BPS = 1200; // ...and sells on a 12% pullback from the peak.
 const MAX_HOLD_SLOTS = 3600; // never hold longer than this; the window is only 6h.
-const BUY_SLIPPAGE_BPS = 2000; // widened from 1000: v1 grade-local showed 4 rejected + 7 failed fills, each failed order still pays the tx fee, so fewer rejects beats a slightly worse fill price on fast curves.
+const BUY_SLIPPAGE_BPS = 1000;
+const CASH_RESERVE_LAMPORTS = 100_000_000n; // 0.1 SOL kept back so late-window exits can always pay their tx fee.
 const SELL_SLIPPAGE_BPS = 10_000;
 
 interface Coin {
@@ -153,7 +154,7 @@ export function decide(state: BotState, batch: Batch): OrderInput[] {
       if (curve.virtual_token_reserves <= 0n) continue;
       if (!upBy(curve.virtual_quote_reserves, curve.virtual_token_reserves, coin.createNum, coin.createDen, ENTRY_RISE_BPS)) continue;
       const amount = cap < STAKE_LAMPORTS ? cap : STAKE_LAMPORTS;
-      if (free < amount + tx) continue;
+      if (free < amount + tx + CASH_RESERVE_LAMPORTS) continue;
       const buy: BuyInput = {
         side: 'buy',
         mint: e.mint,
